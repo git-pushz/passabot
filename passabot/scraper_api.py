@@ -2,6 +2,8 @@ import asyncio
 import logging
 from datetime import datetime
 from typing import NoReturn
+import pickle
+import os
 
 import requests
 from selenium.common.exceptions import NoSuchElementException
@@ -14,6 +16,9 @@ from passabot.common import PASSAPORTOONLINE_URL, AvailabilityEntry, IScraper, s
 logger = logging.getLogger(__name__)
 
 MAX_NOTIFICATIONS = 20
+
+
+PREVIOUS_APPOINTMENTS_PATH = "passabot/data/previous_appointments.pkl"
 
 
 class ResponseError(Exception):
@@ -72,6 +77,20 @@ class ApiScraper(IScraper):
         entries: list[AvailabilityEntry] = []
         possible_appointments = response.json()["list"]
         logger.info("Found %s possible appointments", len(possible_appointments))
+
+        if not os.path.isfile(PREVIOUS_APPOINTMENTS_PATH):
+            previous_appointments = []
+        else:    
+            with open(PREVIOUS_APPOINTMENTS_PATH, 'rb') as f:
+                previous_appointments = pickle.load(f)
+
+        if previous_appointments == possible_appointments:
+            logger.info(f"Of all possible appointments, NO new appointments where found")
+            return []
+         
+        with open(PREVIOUS_APPOINTMENTS_PATH, 'wb') as f:
+            pickle.dump(possible_appointments, f)
+
         for entry in possible_appointments:
             if entry["dataPrimaDisponibilitaResidenti"] is None:
                 continue
