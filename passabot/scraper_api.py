@@ -52,6 +52,8 @@ class ApiScraper(IScraper):
             PASSAPORTOONLINE_URL.format("n/rc/v1/utility/elenca-agenda-appuntamenti-sede-mese"),
             json={"sede": {"id": sede_id}},
         )
+        if response.status_code == 409:
+            return []
         if response.status_code != requests.codes.ok:
             raise ResponseError(response)
         logger.info("Reveived headers: %s", response.headers)
@@ -96,6 +98,8 @@ class ApiScraper(IScraper):
                 continue
             first_available_date = entry["dataPrimaDisponibilitaResidenti"].split("T")[0]
             slots = self._get_slots(entry["id"])
+            if len(slots) == 0:
+                continue
             entries.append(
                 AvailabilityEntry(
                     first_available_date=first_available_date,
