@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from dateutil.parser import parse
 from typing import NoReturn
 import pickle
 import os
@@ -93,8 +94,12 @@ class ApiScraper(IScraper):
         with open(PREVIOUS_APPOINTMENTS_PATH, 'wb') as f:
             pickle.dump(possible_appointments, f)
 
+        one_month_from_now = datetime.now(timezone.utc) + timedelta(days=30)
         for entry in possible_appointments:
             if entry["dataPrimaDisponibilitaResidenti"] is None:
+                continue
+            dt = parse(entry["dataPrimaDisponibilitaResidenti"])
+            if dt > one_month_from_now:
                 continue
             first_available_date = entry["dataPrimaDisponibilitaResidenti"].split("T")[0]
             slots = self._get_slots(entry["id"])
